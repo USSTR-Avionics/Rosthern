@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 pub struct Task {
     pub priority: i8,
     function: fn(),
+    recurring: bool,
 }
 
 impl Task {
@@ -11,17 +12,31 @@ impl Task {
         Task {
             priority,
             function,
+            recurring: false,
         }
     }
 
     pub fn get_function(&self) -> fn() {
         self.function
     }
+
+    pub fn get_priority(&self) -> i8 {
+        self.priority
+    }
+
+    pub fn set_recurring(&mut self, recurring: bool) {
+        self.recurring = recurring;
+    }
+
+    pub fn is_recurring(&self) -> bool {
+        self.recurring
+    }
 }
 
 impl Ord for Task {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.priority.cmp(&other.priority)
+        // self.priority.cmp(&other.priority)
+        other.priority.cmp(&self.priority)
     }
 }
 
