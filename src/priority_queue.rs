@@ -3,12 +3,21 @@ use crate::tasks::Task;
 
 pub struct PriorityQueue {
     queue: Vec<Task>,
+    recurring_type: bool
 }
 
 impl PriorityQueue {
     pub fn new() -> PriorityQueue {
         PriorityQueue {
             queue: Vec::new(),
+            recurring_type: false
+        }
+    }
+
+    pub fn new_recurring() -> PriorityQueue {
+        PriorityQueue {
+            queue: Vec::new(),
+            recurring_type: true
         }
     }
 
@@ -26,6 +35,9 @@ impl PriorityQueue {
     }
 
     pub fn add_recurring_task(&mut self, mut task: Task) {
+        if !self.recurring_type {
+            panic!("This is not a recurring queue");
+        }
         task.set_recurring(true);
         self.add_to_queue(task);
     }

@@ -26,36 +26,23 @@ fn main() {
     let rcr_task = tasks::Task::new(3, rcr);
 
     let mut pq = priority_queue::PriorityQueue::new();
+    let mut rq = priority_queue::PriorityQueue::new_recurring();
 
     pq.add_to_queue(foo_task);
     pq.add_to_queue(bar_task);
     pq.add_to_queue(nvr_task);
-    pq.add_recurring_task(rcr_task);
 
-    match pq.execute() {
-        Ok(task) => println!("Task {} executed", task.get_priority()),
-        Err(e) => println!("Error: {}", e),
-    }
+    rq.add_recurring_task(rcr_task);
+    
+    loop {
+        match pq.execute() {
+            Ok(task) => println!("Task {} executed", task.get_priority()),
+            Err(e) => {}
+            }
 
-    match pq.execute() {
-        Ok(task) => println!("Task {} executed", task.get_priority()),
-        Err(e) => println!("Error: {}", e),
-    }
+        pq.sanitize();
 
-    match pq.execute() {
-        Ok(task) => println!("Task {} executed", task.get_priority()),
-        Err(e) => println!("Error: {}", e),
-    }
+        rq.execute();
+        }
 
-    match pq.execute() {
-        Ok(task) => println!("Task {} executed", task.get_priority()),
-        Err(e) => println!("Error: {}", e),
-    }
-
-    pq.sanitize();
-
-    match pq.execute() {
-        Ok(task) => println!("Task {} executed", task.get_priority()),
-        Err(e) => println!("Error: {}", e),
-    }
 }
