@@ -1,15 +1,23 @@
-#![no_std]
 #![no_main]
+#![no_std]
 
-extern crate panic_halt;
+use core::arch::asm; // use arm assembly
+use panic_halt as _; // panic handler
 
-use cortex_m_rt::entry;
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! 
+    {
+    loop {}
+    }
 
 #[entry]
-fn main() -> ! 
+fn main() 
     {
-    loop 
+    loop
         {
-        // Do something
+        unsafe
+            {
+            asm!("nop")
+            }
         }
     }
