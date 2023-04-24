@@ -1,3 +1,4 @@
+/* TODO: change memory layout to match the STM32F6405RGT6 */
 MEMORY
 {
   /* NOTE K = KiBi = 1024 bytes */
