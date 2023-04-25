@@ -12,6 +12,9 @@ use core::arch::asm; // use arm assembly
 static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 static mut REGISTERS: [u32; 8] = [0; 8];
 
+/// this struct keeps track of the tasks that are running
+/// tasks: array of function pointers to the tasks
+/// current_task: index of the current task
 struct TaskQueue
     {
     tasks: [fn() -> !; 2],
@@ -32,38 +35,7 @@ impl TaskQueue
 
 fn switch_rtos_context()
     {
-    let tq = unsafe { &mut TASK_QUEUE.assume_init_mut() };
-    let current_task = tq.current_task;
-    let next_task = if current_task == 0 { 1 } else { 0 };
-
-    // Save the current task's context
-    unsafe 
-        {
-        asm!(
-            "mrs r0, psp",
-            "stmia r0!, {{r4-r11}}", // save r4-r11 to stack
-            "mov r1, $0" : : "r" (&mut REGISTERS as *mut [u32; 8]) : "r1" : "volatile", "intel",
-            );
-        REGISTERS.copy_from_slice(&[current_task as u32]);
-        }
-
-    // Switch to the next task
-    tq.current_task = next_task;
-
-    // Restore the next task's context
-    let next_task_registers = unsafe { &REGISTERS[(next_task * 8)..(next_task * 8 + 8)] };
-
-    unsafe 
-        {
-        asm!(
-            "mov r1, $0" :: "r" (next_task_registers as *const [u32; 8]) : "r1" : "volatile", "intel",
-            "ldmia r0!, {{r4-r11}}", // restore r4-r11 from stack
-            "msr psp, r0",
-            "bx lr",
-            options(noreturn)
-            );
-        }
-
+    unimplemented!()
     }
 
 #[exception]
@@ -103,6 +75,7 @@ fn setup() -> !
         };
     }
 
+/// Call on the main() function for the C code that sits on top of the RTOS layer
 #[no_mangle]
 fn main_task() -> !
     {
@@ -116,6 +89,7 @@ fn main_task() -> !
         }
     }
 
+/// Call on the engine's main() function for the C code that sits on top of the RTOS layer
 #[no_mangle]
 fn engine_task() -> !
     {
