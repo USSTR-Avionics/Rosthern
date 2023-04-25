@@ -5,14 +5,23 @@ use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::{entry, exception};
 use core::mem::MaybeUninit;
 use panic_halt as _;
-use core::arch::asm; // use arm assembly
+use core::arch::asm;
 
 
 
 static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
 static mut REGISTERS_PREV: [u32; 15] = [0; 15];
+static mut MESSAGES_QUEUE: [u8; 10] = [0; 10];
 
+
+/// This function returns a pointer to a shared memory region which is an array of u8, with a size
+/// of 10. This is the memory region that is used to pass messages between tasks. Be sure to pass
+/// this pointer downstream to the C runtime, as it will be inaccessible later due to a circular dependency
+fn get_common_memory_pointer() -> *mut u8
+    {
+    unsafe { MESSAGES_QUEUE.as_mut_ptr() }
+    }
 
 
 /// this struct keeps track of the tasks that are running
@@ -40,6 +49,10 @@ impl TaskQueue
 
 fn switch_rtos_context()
     {
+    // TODO: 
+    // See what all registers need to be saved
+    // See what all registers need to be restored
+
     // save all the registers of the current task into an array
     unsafe
         {
@@ -76,6 +89,16 @@ fn switch_rtos_context()
         asm!("mov r12, {0}", in(reg) REGISTERS_PREV[12]);
         }
 
+    // load next_task array into prev_task array
+    unsafe
+        {
+        REGISTERS_PREV.copy_from_slice(&REGISTERS_NEXT);
+        // for i in 0..REGISTERS_PREV.len()
+        //     {
+        //     REGISTERS_PREV[i] = REGISTERS_NEXT[i];
+        //     }
+        }
+
     }
 
 #[exception]
@@ -97,6 +120,9 @@ fn setup_systick(syst: &mut cortex_m::peripheral::SYST, clock_cycles: u32)
     syst.enable_interrupt();
     }
 
+/// This is the entry point for the RTOS
+/// It sets up the system timer and then calls the first task
+/// This function should never returns
 #[entry]
 fn setup() -> !
     {
@@ -110,12 +136,13 @@ fn setup() -> !
 
     unsafe
         {
-        TASK_QUEUE = MaybeUninit::new(TaskQueue::new());
-        TASK_QUEUE.assume_init().tasks[0]();
+        TASK_QUEUE.write(TaskQueue::new());
+        TASK_QUEUE.assume_init_mut().tasks[0]();
         };
     }
 
 /// Call on the main() function for the C code that sits on top of the RTOS layer
+/// Be sure to pass on the common pointer downstream to the C runtime
 #[no_mangle]
 fn main_task() -> !
     {
@@ -130,6 +157,7 @@ fn main_task() -> !
     }
 
 /// Call on the engine's main() function for the C code that sits on top of the RTOS layer
+/// Be sure to pass on the common pointer downstream to the C runtime
 #[no_mangle]
 fn engine_task() -> !
     {
