@@ -11,6 +11,20 @@ use core::arch::asm; // use arm assembly
 
 static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 static mut REGISTERS: [u32; 8] = [0; 8];
+static mut MESSAGES_ARRAY: [u8; 4] = [0; 4];
+
+/// returns a pointer to the message array
+/// this function is called from the C code
+/// the C code will use this pointer to write to the message array
+/// returns a poninter to the message array
+#[no_mangle]
+extern "C" fn get_message_pointer() -> *mut u8
+    {
+    unsafe { MESSAGES_ARRAY.as_mut_ptr() }
+    }
+
+#[no_mangle]
+extern "C" fn set_message
 
 /// this struct keeps track of the tasks that are running
 /// tasks: array of function pointers to the tasks
@@ -36,6 +50,8 @@ impl TaskQueue
 fn switch_rtos_context()
     {
     unimplemented!()
+    // save all the registers of the current task into an array
+    // load all the registers of the next task from a array
     }
 
 #[exception]
