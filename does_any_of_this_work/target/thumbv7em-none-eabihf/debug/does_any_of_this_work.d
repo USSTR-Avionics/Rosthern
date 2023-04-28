@@ -1,0 +1,1 @@
+/home/home/Desktop/Projects/USST/Avionics/Rosthern/does_any_of_this_work/target/thumbv7em-none-eabihf/debug/does_any_of_this_work: /home/home/Desktop/Projects/USST/Avionics/Rosthern/does_any_of_this_work/src/main.rs

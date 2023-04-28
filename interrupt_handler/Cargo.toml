@@ -1,0 +1,31 @@
+[package]
+name = "interrupt_handler"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+# strip = true
+lto = true
+
+[dependencies]
+embedded-hal = "0.2.6"
+nb = "1"
+cortex-m = "0.7.3"
+cortex-m-rt = "0.7.0"
+panic-halt = "0.2.0"
+cortex-m-semihosting = "0.5.0"
+# cortex-m-asm = "0.1.2"
+cortex-m-interrupt = "0.2.0"
+bxcan = "0.7.0"
+
+# [dependencies.stm32f4xx-hal]
+# version = "0.15.0"
+# features = ["stm32f405"]
+
+[dependencies.stm32f1xx-hal]
+version = "0.10.0"
+features = ["stm32f103"]
