@@ -10,6 +10,23 @@ use core::arch::asm;
 
 
 static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
+/// Registers that need to be saved and restored
+/// r15 | pc | Program Counter
+/// r14 | lr | Link Register
+/// r13 | sp | Stack Pointer
+/// r12 | ip | Intra-Procedure-call scratch register
+/// r11 | v8 | ARM-state variale register 8
+/// r10 | v7/sl | ARM-state variale register 7, stack limit pointer in stack-checked varients
+/// r9  | v6/sb | ARM-state variale register 6, static base in RWPI varients
+/// r8  | v5 | ARM-state variale register 5
+/// r7  | v4 | ARM-state variale register 4
+/// r6  | v3 | ARM-state variale register 3
+/// r5  | v2 | ARM-state variale register 2
+/// r4  | v1 | ARM-state variale register 1
+/// r3  | a4 | ARM-state argument register 4
+/// r2  | a3 | ARM-state argument register 3
+/// r1  | a2 | ARM-state argument register 2
+/// r0  | a1 | ARM-state argument register 1
 static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
 static mut REGISTERS_PREV: [u32; 15] = [0; 15];
 static mut MESSAGES_QUEUE: [u8; 10] = [0; 10];
@@ -47,6 +64,12 @@ impl TaskQueue
         }
     }
 
+/// The processor pushes 8 registers PSR, PC, LR, R12, R3, R2 R1, and R0 onto the stack on an exception. 
+/// Then the exception routine is executed. On exit from the exception, 
+/// the processor pops 8 words(the same ones those where pushed) from the stack and loads them onto 
+/// the respective CPU registers(in the same order as they where saved)
+/// We have to only save and restore the rest of the registers(R4, R5, R6, R7, R8, R9, R10 & R11) 
+/// within the interrupt. Since SP is directly stored in the TCB, we don’t have to push it to the stack.
 fn switch_rtos_context()
     {
     // TODO: 
