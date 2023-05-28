@@ -1,11 +1,18 @@
-#![no_main]
 #![no_std]
+#![no_main]
+
+// pick a panicking behavior
+// use panic_abort as _; // requires nightly
+// use panic_itm as _; // logs messages over ITM; requires ITM support
+// use panic_semihosting as _; // logs messages to the host stderr; requires a debugger
 
 use cortex_m::peripheral::syst::SystClkSource;
+use cortex_m_semihosting::{debug, hprintln};
 use cortex_m_rt::{entry, exception};
 use core::mem::MaybeUninit;
-use panic_halt as _;
+use panic_halt as _; // you can put a breakpoint on `rust_begin_unwind` to catch panics
 use core::arch::asm;
+use cortex_m::asm;
 
 
 
@@ -62,6 +69,10 @@ impl TaskQueue
             current_task: 0,
             }
         }
+    fn get_tasks(&self) -> &[fn() -> !]
+        {
+        &self.tasks
+        }
     }
 
 /// The processor pushes 8 registers PSR, PC, LR, R12, R3, R2 R1, and R0 onto the stack on an exception. 
@@ -72,9 +83,10 @@ impl TaskQueue
 /// within the interrupt. Since SP is directly stored in the TCB, we don’t have to push it to the stack.
 fn switch_rtos_context()
     {
-    // TODO: 
-    // See what all registers need to be saved
-    // See what all registers need to be restored
+    hprintln!("switching context").unwrap();
+
+    hprintln!("register prev: {:?}", unsafe { REGISTERS_PREV }).unwrap();
+    hprintln!("register next: {:?}", unsafe { REGISTERS_NEXT }).unwrap();
 
     // save all the registers of the current task into an array
     unsafe
@@ -122,6 +134,7 @@ fn switch_rtos_context()
         //     }
         }
 
+    debug::exit(debug::EXIT_SUCCESS);
     }
 
 #[exception]
@@ -143,12 +156,12 @@ fn setup_systick(syst: &mut cortex_m::peripheral::SYST, clock_cycles: u32)
     syst.enable_interrupt();
     }
 
-/// This is the entry point for the RTOS
-/// It sets up the system timer and then calls the first task
-/// This function should never returns
+
 #[entry]
-fn setup() -> !
+fn main() -> ! 
     {
+    hprintln!("Hello, world!").unwrap();
+
     let interrupt_clock_cycles = 10_000; // 10 KHz
 
     let p = cortex_m::Peripherals::take().unwrap();
@@ -160,7 +173,7 @@ fn setup() -> !
     unsafe
         {
         TASK_QUEUE.write(TaskQueue::new());
-        TASK_QUEUE.assume_init_mut().tasks[0]();
+        TASK_QUEUE.assume_init_mut().get_tasks()[0]();
         };
     }
 
@@ -169,13 +182,12 @@ fn setup() -> !
 #[no_mangle]
 fn main_task() -> !
     {
+    let mut x: u32 = 0;
     loop
         {
         // turn on LED
-        unsafe
-            {
-            asm!("nop")
-            }
+        hprintln!("main_task").unwrap();
+        x = x + 1;
         }
     }
 
@@ -187,9 +199,7 @@ fn engine_task() -> !
     loop
         {
         // turn off LED
-        unsafe
-            {
-            asm!("nop")
-            }
+        hprintln!("engine_task").unwrap();
         }
     }
+
