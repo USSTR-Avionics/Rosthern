@@ -34,8 +34,9 @@ static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 /// r2  | a3 | ARM-state argument register 3
 /// r1  | a2 | ARM-state argument register 2
 /// r0  | a1 | ARM-state argument register 1
-static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
 static mut REGISTERS_PREV: [u32; 15] = [0; 15];
+static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
+static mut REGISTERS_CURR: [u32; 15] = [0; 15];
 static mut MESSAGES_QUEUE: [u8; 10] = [0; 10];
 
 
@@ -56,7 +57,6 @@ fn get_common_memory_pointer() -> *mut u8
 struct TaskQueue
     {
     tasks: [fn() -> !; 2],
-    current_task: usize,
     }
 
 impl TaskQueue
@@ -66,24 +66,11 @@ impl TaskQueue
         Self
             {
             tasks: [main_task, engine_task],
-            current_task: 0,
             }
         }
     fn get_tasks(&self) -> &[fn() -> !]
         {
         &self.tasks
-        }
-
-    fn set_next_task(&mut self)
-        {
-        if self.current_task > self.tasks.len() - 1
-            {
-            self.current_task = 0;
-            }
-        else
-            {
-            self.current_task += 1;
-            }
         }
     }
 
@@ -97,61 +84,60 @@ fn switch_rtos_context()
     {
     hprintln!("switching context").unwrap();
 
-    hprintln!("register prev: {:?}", unsafe { REGISTERS_PREV }).unwrap();
-    hprintln!("register next: {:?}", unsafe { REGISTERS_NEXT }).unwrap();
-
     // save all the registers of the current task into an array
     unsafe
         {
-        asm!("mov {0}, r0", out(reg) REGISTERS_NEXT[0]);
-        asm!("mov {0}, r1", out(reg) REGISTERS_NEXT[1]);
-        asm!("mov {0}, r2", out(reg) REGISTERS_NEXT[2]);
-        asm!("mov {0}, r3", out(reg) REGISTERS_NEXT[3]);
-        asm!("mov {0}, r4", out(reg) REGISTERS_NEXT[4]);
-        asm!("mov {0}, r5", out(reg) REGISTERS_NEXT[5]);
-        asm!("mov {0}, r6", out(reg) REGISTERS_NEXT[6]);
-        asm!("mov {0}, r7", out(reg) REGISTERS_NEXT[7]);
-        asm!("mov {0}, r8", out(reg) REGISTERS_NEXT[8]);
-        asm!("mov {0}, r9", out(reg) REGISTERS_NEXT[9]);
-        asm!("mov {0}, r10", out(reg) REGISTERS_NEXT[10]);
-        asm!("mov {0}, r11", out(reg) REGISTERS_NEXT[11]);
-        asm!("mov {0}, r12", out(reg) REGISTERS_NEXT[12]);
+        asm!("mov {0}, r0",  out(reg) REGISTERS_CURR[0]);
+        asm!("mov {0}, r1",  out(reg) REGISTERS_CURR[1]);
+        asm!("mov {0}, r2",  out(reg) REGISTERS_CURR[2]);
+        asm!("mov {0}, r3",  out(reg) REGISTERS_CURR[3]);
+        asm!("mov {0}, r4",  out(reg) REGISTERS_CURR[4]);
+        asm!("mov {0}, r5",  out(reg) REGISTERS_CURR[5]);
+        asm!("mov {0}, r6",  out(reg) REGISTERS_CURR[6]);
+        asm!("mov {0}, r7",  out(reg) REGISTERS_CURR[7]);
+        asm!("mov {0}, r8",  out(reg) REGISTERS_CURR[8]);
+        asm!("mov {0}, r9",  out(reg) REGISTERS_CURR[9]);
+        asm!("mov {0}, r10", out(reg) REGISTERS_CURR[10]);
+        asm!("mov {0}, r11", out(reg) REGISTERS_CURR[11]);
+        asm!("mov {0}, r12", out(reg) REGISTERS_CURR[12]);
+        }
+
+    unsafe
+        {
+        hprintln!("on switch {:?}", REGISTERS_PREV).unwrap();
+        hprintln!("on switch {:?}", REGISTERS_CURR).unwrap();
         }
 
     // load all the registers of the next task from a array
     unsafe
         {
-        asm!("mov r0, {0}", in(reg) REGISTERS_PREV[0]);
-        asm!("mov r1, {0}", in(reg) REGISTERS_PREV[1]);
-        asm!("mov r2, {0}", in(reg) REGISTERS_PREV[2]);
-        asm!("mov r3, {0}", in(reg) REGISTERS_PREV[3]);
-        asm!("mov r4, {0}", in(reg) REGISTERS_PREV[4]);
-        asm!("mov r5, {0}", in(reg) REGISTERS_PREV[5]);
-        asm!("mov r6, {0}", in(reg) REGISTERS_PREV[6]);
-        asm!("mov r7, {0}", in(reg) REGISTERS_PREV[7]);
-        asm!("mov r8, {0}", in(reg) REGISTERS_PREV[8]);
-        asm!("mov r9, {0}", in(reg) REGISTERS_PREV[9]);
+        asm!("mov r0, {0}",  in(reg) REGISTERS_PREV[0]);
+        asm!("mov r1, {0}",  in(reg) REGISTERS_PREV[1]);
+        asm!("mov r2, {0}",  in(reg) REGISTERS_PREV[2]);
+        asm!("mov r3, {0}",  in(reg) REGISTERS_PREV[3]);
+        asm!("mov r4, {0}",  in(reg) REGISTERS_PREV[4]);
+        asm!("mov r5, {0}",  in(reg) REGISTERS_PREV[5]);
+        asm!("mov r6, {0}",  in(reg) REGISTERS_PREV[6]);
+        asm!("mov r7, {0}",  in(reg) REGISTERS_PREV[7]);
+        asm!("mov r8, {0}",  in(reg) REGISTERS_PREV[8]);
+        asm!("mov r9, {0}",  in(reg) REGISTERS_PREV[9]);
         asm!("mov r10, {0}", in(reg) REGISTERS_PREV[10]);
         asm!("mov r11, {0}", in(reg) REGISTERS_PREV[11]);
         asm!("mov r12, {0}", in(reg) REGISTERS_PREV[12]);
         }
 
-    // load next_task array into prev_task array
-    unsafe
+    unsafe 
         {
-        REGISTERS_PREV.copy_from_slice(&REGISTERS_NEXT);
-        // for i in 0..REGISTERS_PREV.len()
-        //     {
-        //     REGISTERS_PREV[i] = REGISTERS_NEXT[i];
-        //     }
+        REGISTERS_CURR.copy_from_slice(&mut REGISTERS_PREV);
         }
 
     unsafe
         {
-        TASK_QUEUE.assume_init_mut().set_next_task();
-        TASK_QUEUE.assume_init_mut().get_tasks()[TASK_QUEUE.assume_init().current_task]();
+        hprintln!("on leaving switch {:?}", REGISTERS_CURR).unwrap();
+        hprintln!("on leaving switch {:?}", REGISTERS_PREV).unwrap();
         }
 
+//    debug::exit(debug::EXIT_SUCCESS);
     }
 
 #[exception]

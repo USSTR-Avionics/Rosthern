@@ -1,8 +1,7 @@
 [package]
-authors = ["{{authors}}"]
 edition = "2018"
 readme = "README.md"
-name = "rost"
+name = "rosthern"
 version = "0.1.0"
 
 [dependencies]
@@ -28,7 +27,7 @@ cortex-m-rt = "0.7.3"
 
 # this lets you use `cargo fix`!
 [[bin]]
-name = "rost"
+name = "rosthern"
 test = false
 bench = false
 
