@@ -73,6 +73,18 @@ impl TaskQueue
         {
         &self.tasks
         }
+
+    fn set_next_task(&mut self)
+        {
+        if self.current_task > self.tasks.len() - 1
+            {
+            self.current_task = 0;
+            }
+        else
+            {
+            self.current_task += 1;
+            }
+        }
     }
 
 /// The processor pushes 8 registers PSR, PC, LR, R12, R3, R2 R1, and R0 onto the stack on an exception. 
@@ -134,7 +146,12 @@ fn switch_rtos_context()
         //     }
         }
 
-    debug::exit(debug::EXIT_SUCCESS);
+    unsafe
+        {
+        TASK_QUEUE.assume_init_mut().set_next_task();
+        TASK_QUEUE.assume_init_mut().get_tasks()[TASK_QUEUE.assume_init().current_task]();
+        }
+
     }
 
 #[exception]
@@ -158,7 +175,7 @@ fn setup_systick(syst: &mut cortex_m::peripheral::SYST, clock_cycles: u32)
 
 
 #[entry]
-fn main() -> ! 
+fn setup() -> ! 
     {
     hprintln!("Hello, world!").unwrap();
 
