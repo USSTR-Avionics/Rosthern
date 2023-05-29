@@ -49,7 +49,7 @@ fn get_common_memory_pointer() -> *mut u8
     }
 
 
-/// this struct keeps track of the tasks that are running
+/// this struct holds the tasks that need to be run
 /// tasks: array of function pointers to the tasks
 /// current_task: index of the current task
 #[repr(C)]
@@ -57,6 +57,7 @@ fn get_common_memory_pointer() -> *mut u8
 struct TaskQueue
     {
     tasks: [fn() -> !; 2],
+    run_second: bool,
     }
 
 impl TaskQueue
@@ -66,6 +67,7 @@ impl TaskQueue
         Self
             {
             tasks: [main_task, engine_task],
+            run_second: false
             }
         }
     fn get_tasks(&self) -> &[fn() -> !]
@@ -136,14 +138,18 @@ fn switch_rtos_context()
         hprintln!("on leaving switch {:?}", REGISTERS_CURR).unwrap();
         hprintln!("on leaving switch {:?}", REGISTERS_PREV).unwrap();
         }
+    
+debug::exit(debug::EXIT_SUCCESS);
 
     unsafe
         {
-        if REGISTERS_PREV.iter().all(|&x| x == 0)
+        if !TASK_QUEUE.assume_init_mut().run_second
             {
+            TASK_QUEUE.assume_init_mut().run_second = true;
             TASK_QUEUE.assume_init_mut().get_tasks()[1]();
             }
         }
+
     }
 
 #[exception]
@@ -193,6 +199,7 @@ fn main_task() -> !
     {
     loop
         {
+        asm::nop();
         // turn on LED
         hprintln!("main_task").unwrap()
         }
@@ -205,6 +212,7 @@ fn engine_task() -> !
     {
     loop
         {
+        asm::nop();
         // turn off LED
         hprintln!("engine_task").unwrap();
         }
