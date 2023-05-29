@@ -10,6 +10,7 @@ use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_semihosting::{debug, hprintln};
 use cortex_m_rt::{entry, exception};
 use core::mem::MaybeUninit;
+use rosthern::postman;
 use panic_halt as _; // you can put a breakpoint on `rust_begin_unwind` to catch panics
 use core::arch::asm;
 use cortex_m::asm;
@@ -37,17 +38,6 @@ static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 static mut REGISTERS_PREV: [u32; 15] = [0; 15];
 static mut REGISTERS_CURR: [u32; 15] = [0; 15];
 static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
-static mut MESSAGES_QUEUE: [u8; 10] = [0; 10];
-
-
-/// This function returns a pointer to a shared memory region which is an array of u8, with a size
-/// of 10. This is the memory region that is used to pass messages between tasks. Be sure to pass
-/// this pointer downstream to the C runtime, as it will be inaccessible later due to a circular dependency
-fn get_common_memory_pointer() -> *mut u8
-    {
-    unsafe { MESSAGES_QUEUE.as_mut_ptr() }
-    }
-
 
 /// this struct holds the tasks that need to be run
 /// tasks: array of function pointers to the tasks
@@ -84,6 +74,8 @@ impl TaskQueue
 /// within the interrupt. Since SP is directly stored in the TCB, we don’t have to push it to the stack.
 fn switch_rtos_context()
     {
+    postman::postman_snoop();
+
     hprintln!("switching context").unwrap();
 
     // save all the registers of the current task into an array
