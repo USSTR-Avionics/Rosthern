@@ -35,8 +35,8 @@ static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 /// r1  | a2 | ARM-state argument register 2
 /// r0  | a1 | ARM-state argument register 1
 static mut REGISTERS_PREV: [u32; 15] = [0; 15];
-static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
 static mut REGISTERS_CURR: [u32; 15] = [0; 15];
+static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
 static mut MESSAGES_QUEUE: [u8; 10] = [0; 10];
 
 
@@ -128,7 +128,7 @@ fn switch_rtos_context()
 
     unsafe 
         {
-        REGISTERS_CURR.copy_from_slice(&mut REGISTERS_PREV);
+        REGISTERS_PREV.copy_from_slice(&mut REGISTERS_CURR);
         }
 
     unsafe
@@ -137,7 +137,13 @@ fn switch_rtos_context()
         hprintln!("on leaving switch {:?}", REGISTERS_PREV).unwrap();
         }
 
-//    debug::exit(debug::EXIT_SUCCESS);
+    unsafe
+        {
+        if REGISTERS_PREV.iter().all(|&x| x == 0)
+            {
+            TASK_QUEUE.assume_init_mut().get_tasks()[1]();
+            }
+        }
     }
 
 #[exception]
@@ -185,12 +191,10 @@ fn setup() -> !
 #[no_mangle]
 fn main_task() -> !
     {
-    let mut x: u32 = 0;
     loop
         {
         // turn on LED
-        hprintln!("main_task").unwrap();
-        x = x + 1;
+        hprintln!("main_task").unwrap()
         }
     }
 
