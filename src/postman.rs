@@ -3,7 +3,7 @@ static mut MESSAGES_QUEUE: [u8; 1] = [0; 1];
 /// This function returns a pointer to a shared memory region which is an array of u8, with a size
 /// of 10. This is the memory region that is used to pass messages between tasks. Be sure to pass
 /// this pointer downstream to the C runtime, as it will be inaccessible later due to a circular dependency
-pub fn get_common_memory_pointer() -> *mut u8
+pub fn get_message_array_pointer() -> *mut u8
     {
     unsafe { MESSAGES_QUEUE.as_mut_ptr() }
     }

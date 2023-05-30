@@ -188,6 +188,8 @@ fn setup() -> !
 #[no_mangle]
 fn main_task() -> !
     {
+    let ptr = postman::get_message_array_pointer();
+    // c_func(ptr)
     loop
         {
         asm::nop();
@@ -201,6 +203,8 @@ fn main_task() -> !
 #[no_mangle]
 fn engine_task() -> !
     {
+    let ptr = postman::get_message_array_pointer();
+    // c_func(ptr)
     loop
         {
         asm::nop();
