@@ -139,8 +139,6 @@ fn switch_rtos_context()
         hprintln!("on leaving switch {:?}", REGISTERS_PREV).unwrap();
         }
     
-debug::exit(debug::EXIT_SUCCESS);
-
     unsafe
         {
         if !TASK_QUEUE.assume_init_mut().run_second
@@ -149,7 +147,11 @@ debug::exit(debug::EXIT_SUCCESS);
             TASK_QUEUE.assume_init_mut().get_tasks()[1]();
             }
         }
+    }
 
+fn switch_rtos_context2()
+    {
+    hprintln!("switching context").unwrap();
     }
 
 #[exception]
