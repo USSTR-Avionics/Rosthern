@@ -1,3 +1,1 @@
-- check if interrupts are detected and a function is executed on handler
-- call on two functions with infinite loops to turn LED on and off to check pre-emptive task switching
-- load registers and save registers to see if task switching works for more complicated tasks
+

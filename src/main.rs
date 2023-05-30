@@ -1,15 +1,13 @@
 #![no_std]
 #![no_main]
 
-// pick a panicking behavior
-// use panic_abort as _; // requires nightly
-// use panic_itm as _; // logs messages over ITM; requires ITM support
-// use panic_semihosting as _; // logs messages to the host stderr; requires a debugger
+
 
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_semihosting::{debug, hprintln};
 use cortex_m_rt::{entry, exception};
 use core::mem::MaybeUninit;
+use rosthern::postman;
 use panic_halt as _; // you can put a breakpoint on `rust_begin_unwind` to catch panics
 use core::arch::asm;
 use cortex_m::asm;
@@ -37,17 +35,6 @@ static mut TASK_QUEUE: MaybeUninit<TaskQueue> = MaybeUninit::uninit();
 static mut REGISTERS_PREV: [u32; 15] = [0; 15];
 static mut REGISTERS_CURR: [u32; 15] = [0; 15];
 static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
-static mut MESSAGES_QUEUE: [u8; 10] = [0; 10];
-
-
-/// This function returns a pointer to a shared memory region which is an array of u8, with a size
-/// of 10. This is the memory region that is used to pass messages between tasks. Be sure to pass
-/// this pointer downstream to the C runtime, as it will be inaccessible later due to a circular dependency
-fn get_common_memory_pointer() -> *mut u8
-    {
-    unsafe { MESSAGES_QUEUE.as_mut_ptr() }
-    }
-
 
 /// this struct holds the tasks that need to be run
 /// tasks: array of function pointers to the tasks
@@ -84,21 +71,23 @@ impl TaskQueue
 /// within the interrupt. Since SP is directly stored in the TCB, we don’t have to push it to the stack.
 fn switch_rtos_context()
     {
+    postman::postman_snoop();
+
     hprintln!("switching context").unwrap();
 
     // save all the registers of the current task into an array
     unsafe
         {
-        asm!("mov {0}, r0",  out(reg) REGISTERS_CURR[0]);
-        asm!("mov {0}, r1",  out(reg) REGISTERS_CURR[1]);
-        asm!("mov {0}, r2",  out(reg) REGISTERS_CURR[2]);
-        asm!("mov {0}, r3",  out(reg) REGISTERS_CURR[3]);
-        asm!("mov {0}, r4",  out(reg) REGISTERS_CURR[4]);
-        asm!("mov {0}, r5",  out(reg) REGISTERS_CURR[5]);
-        asm!("mov {0}, r6",  out(reg) REGISTERS_CURR[6]);
-        asm!("mov {0}, r7",  out(reg) REGISTERS_CURR[7]);
-        asm!("mov {0}, r8",  out(reg) REGISTERS_CURR[8]);
-        asm!("mov {0}, r9",  out(reg) REGISTERS_CURR[9]);
+        asm!("mov {0}, r0 ", out(reg) REGISTERS_CURR[0]);
+        asm!("mov {0}, r1 ", out(reg) REGISTERS_CURR[1]);
+        asm!("mov {0}, r2 ", out(reg) REGISTERS_CURR[2]);
+        asm!("mov {0}, r3 ", out(reg) REGISTERS_CURR[3]);
+        asm!("mov {0}, r4 ", out(reg) REGISTERS_CURR[4]);
+        asm!("mov {0}, r5 ", out(reg) REGISTERS_CURR[5]);
+        asm!("mov {0}, r6 ", out(reg) REGISTERS_CURR[6]);
+        asm!("mov {0}, r7 ", out(reg) REGISTERS_CURR[7]);
+        asm!("mov {0}, r8 ", out(reg) REGISTERS_CURR[8]);
+        asm!("mov {0}, r9 ", out(reg) REGISTERS_CURR[9]);
         asm!("mov {0}, r10", out(reg) REGISTERS_CURR[10]);
         asm!("mov {0}, r11", out(reg) REGISTERS_CURR[11]);
         asm!("mov {0}, r12", out(reg) REGISTERS_CURR[12]);
@@ -113,16 +102,16 @@ fn switch_rtos_context()
     // load all the registers of the next task from a array
     unsafe
         {
-        asm!("mov r0, {0}",  in(reg) REGISTERS_PREV[0]);
-        asm!("mov r1, {0}",  in(reg) REGISTERS_PREV[1]);
-        asm!("mov r2, {0}",  in(reg) REGISTERS_PREV[2]);
-        asm!("mov r3, {0}",  in(reg) REGISTERS_PREV[3]);
-        asm!("mov r4, {0}",  in(reg) REGISTERS_PREV[4]);
-        asm!("mov r5, {0}",  in(reg) REGISTERS_PREV[5]);
-        asm!("mov r6, {0}",  in(reg) REGISTERS_PREV[6]);
-        asm!("mov r7, {0}",  in(reg) REGISTERS_PREV[7]);
-        asm!("mov r8, {0}",  in(reg) REGISTERS_PREV[8]);
-        asm!("mov r9, {0}",  in(reg) REGISTERS_PREV[9]);
+        asm!("mov r0,  {0}", in(reg) REGISTERS_PREV[0]);
+        asm!("mov r1,  {0}", in(reg) REGISTERS_PREV[1]);
+        asm!("mov r2,  {0}", in(reg) REGISTERS_PREV[2]);
+        asm!("mov r3,  {0}", in(reg) REGISTERS_PREV[3]);
+        asm!("mov r4,  {0}", in(reg) REGISTERS_PREV[4]);
+        asm!("mov r5,  {0}", in(reg) REGISTERS_PREV[5]);
+        asm!("mov r6,  {0}", in(reg) REGISTERS_PREV[6]);
+        asm!("mov r7,  {0}", in(reg) REGISTERS_PREV[7]);
+        asm!("mov r8,  {0}", in(reg) REGISTERS_PREV[8]);
+        asm!("mov r9,  {0}", in(reg) REGISTERS_PREV[9]);
         asm!("mov r10, {0}", in(reg) REGISTERS_PREV[10]);
         asm!("mov r11, {0}", in(reg) REGISTERS_PREV[11]);
         asm!("mov r12, {0}", in(reg) REGISTERS_PREV[12]);
