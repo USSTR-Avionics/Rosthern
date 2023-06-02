@@ -44,6 +44,7 @@ static mut REGISTERS_NEXT: [u32; 15] = [0; 15];
 struct TaskQueue
     {
     tasks: [fn() -> !; 2],
+    curr: usize,
     run_second: bool,
     }
 
@@ -54,6 +55,7 @@ impl TaskQueue
         Self
             {
             tasks: [main_task, engine_task],
+            curr: 0,
             run_second: false
             }
         }
@@ -73,6 +75,20 @@ fn switch_rtos_context()
     {
     postman::postman_snoop();
 
+    unsafe {
+        if TASK_QUEUE.assume_init_mut().curr == 0
+            {
+            TASK_QUEUE.assume_init_mut().curr = 1;
+            engine_task();
+            }
+        else
+            {
+            TASK_QUEUE.assume_init_mut().curr = 0;
+            main_task();
+            }
+    }
+
+    /*
     hprintln!("switching context").unwrap();
 
     // save all the registers of the current task into an array
@@ -136,11 +152,7 @@ fn switch_rtos_context()
             TASK_QUEUE.assume_init_mut().get_tasks()[1]();
             }
         }
-    }
-
-fn switch_rtos_context2()
-    {
-    hprintln!("switching context").unwrap();
+    */
     }
 
 #[exception]
