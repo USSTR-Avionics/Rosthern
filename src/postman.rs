@@ -11,7 +11,7 @@ pub fn get_message_array_pointer() -> *mut u8
 /// Subscribe a downstream C function to this to snoop on the messages in the message queue
 /// This will check if a certain flag is set and if so, it will call the C function
 #[no_mangle]
-pub fn postman_snoop() 
+pub fn snoop() 
     {
     unsafe
         {

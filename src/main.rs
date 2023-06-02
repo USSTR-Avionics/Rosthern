@@ -73,20 +73,27 @@ impl TaskQueue
 /// within the interrupt. Since SP is directly stored in the TCB, we don’t have to push it to the stack.
 fn switch_rtos_context()
     {
-    postman::postman_snoop();
+    postman::snoop();
 
-    unsafe {
-        if TASK_QUEUE.assume_init_mut().curr == 0
-            {
-            TASK_QUEUE.assume_init_mut().curr = 1;
-            engine_task();
-            }
-        else
-            {
-            TASK_QUEUE.assume_init_mut().curr = 0;
-            main_task();
-            }
-    }
+    let p = cortex_m::Peripherals::take().unwrap();
+    let mut syst = p.SYST;
+    syst.set_clock_source(SystClkSource::Core);
+
+    main_task();
+
+
+//    unsafe {
+//        if TASK_QUEUE.assume_init_mut().curr == 0
+//            {
+//            TASK_QUEUE.assume_init_mut().curr = 1;
+//            engine_task();
+//            }
+//        else
+//            {
+//            TASK_QUEUE.assume_init_mut().curr = 0;
+//            main_task();
+//            }
+//    }
 
     /*
     hprintln!("switching context").unwrap();
@@ -158,6 +165,7 @@ fn switch_rtos_context()
 #[exception]
 fn SysTick()
     {
+    hprintln!("SysTick------------------------------").unwrap();
     switch_rtos_context();
     }
 
@@ -174,7 +182,6 @@ fn setup_systick(syst: &mut cortex_m::peripheral::SYST, clock_cycles: u32)
     syst.enable_interrupt();
     }
 
-
 #[entry]
 fn setup() -> ! 
     {
@@ -184,7 +191,7 @@ fn setup() -> !
 
     let p = cortex_m::Peripherals::take().unwrap();
     let mut syst = p.SYST;
-                                         //
+
     syst.set_clock_source(SystClkSource::Core);
     setup_systick(&mut syst, interrupt_clock_cycles);
 
